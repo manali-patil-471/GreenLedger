@@ -1,0 +1,30 @@
+{
+  "generator_version": "1.0.1",
+  "generator_script": "scripts/generate_unseen_structure_pilot.py",
+  "generator_script_sha256": "89b59c39356d5fc1062edd9d80c1c037065dd89e408bcea0f29f4cb710a1b44b",
+  "seed": 20261115,
+  "render_backends": [
+    "ReportLab vector PDF",
+    "Pillow raster scene",
+    "ReportLab image-only PDF wrapper"
+  ],
+  "not_imported_or_called": [
+    "scripts/generate_synthetic_benchmark.py",
+    "old layout_A through layout_H templates"
+  ],
+  "randomized_dimensions": [
+    "document structure",
+    "field order",
+    "page size/orientation",
+    "typeface",
+    "color",
+    "supplier",
+    "wording",
+    "quality simulation",
+    "format",
+    "page count"
+  ],
+  "no_model_or_ocr_run": true,
+  "accounting_oracle": "Existing deterministic greenledger.core.evaluate_submission; only complete and unambiguous cases are calculated.",
+  "synthetic_capture_disclosure": "Scan/phone visual effects are simulated; no genuine scanned or photographed documents were available or claimed."
+}

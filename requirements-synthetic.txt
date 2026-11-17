@@ -1,0 +1,2 @@
+# Reproducible raster rendering dependency for scripts/generate_synthetic_benchmark.py
+Pillow==12.3.0

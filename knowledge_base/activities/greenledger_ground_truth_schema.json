@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://greenledger.invalid/knowledge_base/activities/greenledger_ground_truth_schema.json",
+  "schema_name": "GreenLedger v1 carbon ground truth schema",
+  "schema_version": "0.2",
+  "description": "Reusable carbon-truth subset of the benchmark annotation contract. Public document-understanding records may omit these sections when their task_coverage excludes carbon tasks.",
+  "$ref": "../../data/benchmark/GREENLEDGER_ANNOTATION_SCHEMA.json#/$defs/carbon_ground_truth"
+}

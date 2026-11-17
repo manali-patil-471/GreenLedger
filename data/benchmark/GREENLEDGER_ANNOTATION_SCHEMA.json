@@ -1,0 +1,913 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://greenledger.invalid/data/benchmark/GREENLEDGER_ANNOTATION_SCHEMA.json",
+  "title": "GreenLedger benchmark annotation record",
+  "schema_name": "GreenLedger benchmark annotation schema",
+  "schema_version": "0.3",
+  "description": "One document record. task_coverage is the explicit task applicability mask: public FATURA/CORD records may cover document understanding only and must not be assigned carbon labels they do not provide. Synthetic/real GreenLedger carbon truth is recorded separately from system predictions. Generic public labels do not expand the frozen GreenLedger v1 activity scope.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "document_id",
+    "document_type",
+    "source_type",
+    "source_document",
+    "task_coverage",
+    "ground_truth",
+    "annotation_metadata"
+  ],
+  "properties": {
+    "document_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "electricity_bill",
+        "diesel_fuel_invoice",
+        "lpg_receipt",
+        "purchased_material_invoice",
+        "freight_transport_bill",
+        "generic_invoice",
+        "generic_receipt",
+        "other_business_document",
+        "unknown"
+      ]
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "public",
+        "synthetic",
+        "real_sme"
+      ]
+    },
+    "split": {
+      "type": "string",
+      "enum": ["train", "validation", "test"]
+    },
+    "source_document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path_or_id"
+      ],
+  "properties": {
+        "path_or_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "task_coverage": {
+      "type": "array",
+      "uniqueItems": true,
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": [
+          "document_type_classification",
+          "ocr_text_extraction",
+          "carbon_field_extraction",
+          "activity_normalization",
+          "unit_normalization",
+          "scope_classification",
+          "scope3_category_classification",
+          "factor_retrieval",
+          "co2e_calculation",
+          "confidence_estimation",
+          "human_review_decision"
+        ]
+      }
+    },
+    "layout_family": {
+      "type": "string"
+    },
+    "vendor_pseudonym": {
+      "type": "string"
+    },
+    "quality_tags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "geography_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "country": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string"
+        },
+        "grid_or_route": {
+          "type": "string"
+        }
+      }
+    },
+    "ground_truth": {
+      "$ref": "#/$defs/carbon_ground_truth"
+    },
+    "annotation_metadata": {
+      "$ref": "#/$defs/annotation_metadata"
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "task_coverage": { "contains": { "const": "ocr_text_extraction" } } } },
+      "then": { "properties": { "ground_truth": { "required": ["ocr"] } } }
+    },
+    {
+      "if": { "properties": { "task_coverage": { "contains": { "const": "carbon_field_extraction" } } } },
+      "then": { "properties": { "ground_truth": { "required": ["fields"] } } }
+    },
+    {
+      "if": { "properties": { "task_coverage": { "contains": { "const": "activity_normalization" } } } },
+      "then": { "properties": { "ground_truth": { "required": ["activity_normalization"] } } }
+    },
+    {
+      "if": { "properties": { "task_coverage": { "contains": { "const": "unit_normalization" } } } },
+      "then": { "properties": { "ground_truth": { "required": ["unit_normalization"] } } }
+    },
+    {
+      "if": { "properties": { "task_coverage": { "contains": { "const": "scope_classification" } } } },
+      "then": { "properties": { "ground_truth": { "required": ["ghg_classification"] } } }
+    },
+    {
+      "if": { "properties": { "task_coverage": { "contains": { "const": "scope3_category_classification" } } } },
+      "then": { "properties": { "ground_truth": { "required": ["ghg_classification"] } } }
+    },
+    {
+      "if": { "properties": { "task_coverage": { "contains": { "const": "factor_retrieval" } } } },
+      "then": { "properties": { "ground_truth": { "required": ["factor_retrieval"] } } }
+    },
+    {
+      "if": { "properties": { "task_coverage": { "contains": { "const": "co2e_calculation" } } } },
+      "then": { "properties": { "ground_truth": { "required": ["co2e_calculation"] } } }
+    },
+    {
+      "if": { "properties": { "task_coverage": { "contains": { "const": "confidence_estimation" } } } },
+      "then": { "properties": { "ground_truth": { "required": ["review_truth"] } } }
+    },
+    {
+      "if": { "properties": { "task_coverage": { "contains": { "const": "human_review_decision" } } } },
+      "then": { "properties": { "ground_truth": { "required": ["review_truth"] } } }
+    },
+    {
+      "if": {
+        "properties": {
+          "ground_truth": {
+            "required": ["co2e_calculation"],
+            "properties": { "co2e_calculation": { "properties": { "status": { "const": "calculated" } } } }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "ground_truth": {
+            "required": ["activity_normalization", "unit_normalization", "ghg_classification", "factor_retrieval", "co2e_calculation"],
+            "properties": {
+              "activity_normalization": { "properties": { "status": { "const": "normalized" } } },
+              "unit_normalization": { "properties": { "status": { "const": "normalized" } } },
+              "ghg_classification": { "properties": { "status": { "const": "classified" } } },
+              "factor_retrieval": { "properties": { "status": { "const": "verified_co2e_factor_available" } } }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "bbox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "description": "Image-relative normalized coordinates in [0,1], with origin at top-left.",
+      "properties": {
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "ocr_token": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text",
+        "bbox"
+      ],
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "bbox": {
+          "$ref": "#/$defs/bbox"
+        }
+      }
+    },
+    "field_annotation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "field_name",
+        "presence_status",
+        "expected_review_required"
+      ],
+      "properties": {
+        "field_name": {
+          "type": "string"
+        },
+        "presence_status": {
+          "type": "string",
+          "enum": [
+            "present",
+            "not_present",
+            "illegible",
+            "ambiguous",
+            "not_applicable"
+          ]
+        },
+        "raw_text": {
+          "type": "string"
+        },
+        "normalized_value": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "normalized_unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence_text": {
+          "type": "string"
+        },
+        "evidence_bbox": {
+          "$ref": "#/$defs/bbox"
+        },
+        "expected_review_required": {
+          "type": "boolean"
+        },
+        "uncertainty_reason": {
+          "type": "string"
+        }
+      }
+    },
+    "conversion_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule_id",
+        "input_value",
+        "input_unit",
+        "output_value",
+        "output_unit",
+        "basis"
+      ],
+      "properties": {
+        "rule_id": {
+          "type": "string"
+        },
+        "input_value": {
+          "type": "number"
+        },
+        "input_unit": {
+          "type": "string"
+        },
+        "output_value": {
+          "type": "number"
+        },
+        "output_unit": {
+          "type": "string"
+        },
+        "basis": {
+          "type": "string"
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "ocr_ground_truth": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "transcription": {
+          "type": "string"
+        },
+        "tokens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ocr_token"
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "activity_normalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "normalized",
+            "ambiguous",
+            "not_applicable"
+          ]
+        },
+        "raw_activity_text": {
+          "type": "string"
+        },
+        "activity": {
+          "type": "string",
+          "description": "Canonical display name from activities.json."
+        },
+        "normalized_activity": {
+          "type": "string",
+          "enum": [
+            "purchased_electricity",
+            "diesel_fuel",
+            "lpg",
+            "purchased_materials",
+            "selected_transport"
+          ]
+        },
+        "ambiguity_reason": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "normalized" } } },
+          "then": { "required": ["activity", "normalized_activity"] }
+        },
+        {
+          "if": { "properties": { "status": { "const": "ambiguous" } } },
+          "then": { "required": ["ambiguity_reason"] }
+        }
+      ]
+    },
+    "unit_normalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "raw_quantity_text"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "normalized",
+            "ambiguous",
+            "missing",
+            "not_applicable"
+          ]
+        },
+        "raw_quantity_text": {
+          "type": "string"
+        },
+        "raw_quantity": {
+          "type": "number"
+        },
+        "raw_unit": {
+          "type": "string"
+        },
+        "normalized_quantity": {
+          "type": "number"
+        },
+        "normalized_unit": {
+          "type": "string"
+        },
+        "conversion_trace": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/conversion_step"
+          }
+        },
+        "ambiguity_reason": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "normalized" } } },
+          "then": { "required": ["raw_quantity", "raw_unit", "normalized_quantity", "normalized_unit"] }
+        },
+        {
+          "if": { "properties": { "status": { "const": "ambiguous" } } },
+          "then": { "required": ["ambiguity_reason"] }
+        }
+      ]
+    },
+    "ghg_classification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "classified",
+            "ambiguous",
+            "not_applicable"
+          ]
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "Scope 1",
+                "Scope 2",
+                "Scope 3"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope_category": {
+          "type": ["string", "null"],
+          "enum": [
+            "purchased electricity",
+            "stationary combustion",
+            "mobile combustion",
+            "Category 1 - Purchased goods and services",
+            "Category 4 - Upstream transportation and distribution",
+            "Category 9 - Downstream transportation and distribution",
+            null
+          ]
+        },
+        "context_fields": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          }
+        },
+        "ambiguity_reason": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "classified" } } },
+          "then": {
+            "required": ["scope", "scope_category"],
+            "properties": {
+              "scope": { "type": "string", "enum": ["Scope 1", "Scope 2", "Scope 3"] },
+              "scope_category": {
+                "type": "string",
+                "enum": [
+                  "purchased electricity",
+                  "stationary combustion",
+                  "mobile combustion",
+                  "Category 1 - Purchased goods and services",
+                  "Category 4 - Upstream transportation and distribution",
+                  "Category 9 - Downstream transportation and distribution"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "status": { "const": "ambiguous" } } },
+          "then": { "required": ["ambiguity_reason"] }
+        },
+        {
+          "if": { "required": ["status", "scope"], "properties": { "status": { "const": "classified" }, "scope": { "const": "Scope 1" } } },
+          "then": { "properties": { "scope_category": { "enum": ["stationary combustion", "mobile combustion"] } } }
+        },
+        {
+          "if": { "required": ["status", "scope"], "properties": { "status": { "const": "classified" }, "scope": { "const": "Scope 2" } } },
+          "then": { "properties": { "scope_category": { "const": "purchased electricity" } } }
+        },
+        {
+          "if": { "required": ["status", "scope"], "properties": { "status": { "const": "classified" }, "scope": { "const": "Scope 3" } } },
+          "then": { "properties": { "scope_category": { "enum": ["Category 1 - Purchased goods and services", "Category 4 - Upstream transportation and distribution", "Category 9 - Downstream transportation and distribution"] } } }
+        }
+      ]
+    },
+    "factor_retrieval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "verified_co2e_factor_available",
+            "co2_only_reference_only",
+            "factor_not_verified",
+            "method_selection_required",
+            "future_scope",
+            "not_applicable"
+          ]
+        },
+        "factor_id": {
+          "type": "string"
+        },
+        "factor_value": {
+          "type": "number"
+        },
+        "factor_unit": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "source_version": {
+          "type": "string"
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "geography": {
+          "type": "string"
+        },
+        "applicable_year": {
+          "type": "string"
+        },
+        "methodology": {
+          "type": "string"
+        },
+        "unresolved_reason": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "verified_co2e_factor_available" } } },
+          "then": {
+            "required": ["factor_id", "factor_value", "factor_unit", "source", "source_version", "source_url", "geography", "applicable_year", "methodology"]
+          }
+        }
+      ]
+    },
+    "co2e_calculation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "description": "expected_co2e is present only when a verified CO2e factor and every required conversion are available. Never put a CO2-only result here.",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "calculated",
+            "not_calculable_missing_factor",
+            "not_calculable_ambiguous_activity",
+            "not_calculable_missing_conversion",
+            "not_applicable"
+          ]
+        },
+        "expected_co2e": {
+          "type": "number",
+          "minimum": 0
+        },
+        "co2e_unit": {
+          "type": "string",
+          "enum": [
+            "kgCO2e",
+            "tCO2e"
+          ]
+        },
+        "calculation_trace": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "step",
+              "value",
+              "unit"
+            ],
+            "properties": {
+              "step": {
+                "type": "string"
+              },
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string"
+              },
+              "factor_id": {
+                "type": "string"
+              },
+              "rule_id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "unresolved_reason": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "calculated" } } },
+          "then": { "required": ["expected_co2e", "co2e_unit", "calculation_trace"], "properties": { "calculation_trace": { "minItems": 1 } } },
+          "else": { "not": { "anyOf": [{ "required": ["expected_co2e"] }, { "required": ["co2e_unit"] }] } }
+        }
+      ]
+    },
+    "review_truth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_required",
+        "fields",
+        "reason_codes",
+        "expected_action"
+      ],
+      "properties": {
+        "review_required": {
+          "type": "boolean"
+        },
+        "fields": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "reason_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "expected_action": {
+          "type": "string",
+          "enum": [
+            "accept",
+            "correct",
+            "reject",
+            "escalate"
+          ]
+        }
+      }
+    },
+    "carbon_ground_truth": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ocr": {
+          "$ref": "#/$defs/ocr_ground_truth"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/field_annotation"
+          }
+        },
+        "activity_normalization": {
+          "$ref": "#/$defs/activity_normalization"
+        },
+        "unit_normalization": {
+          "$ref": "#/$defs/unit_normalization"
+        },
+        "ghg_classification": {
+          "$ref": "#/$defs/ghg_classification"
+        },
+        "factor_retrieval": {
+          "$ref": "#/$defs/factor_retrieval"
+        },
+        "co2e_calculation": {
+          "$ref": "#/$defs/co2e_calculation"
+        },
+        "review_truth": {
+          "$ref": "#/$defs/review_truth"
+        }
+      }
+    },
+    "annotation_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "validation_status"
+      ],
+      "properties": {
+        "validation_status": {
+          "type": "string",
+          "enum": [
+            "verified",
+            "reviewed",
+            "uncertain",
+            "rejected"
+          ]
+        },
+        "annotator_id": {
+          "type": "string"
+        },
+        "reviewer_id": {
+          "type": "string"
+        },
+        "validated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "adjudication_notes": {
+          "type": "string"
+        }
+      }
+    },
+    "system_prediction": {
+      "type": "object",
+      "description": "Separate evaluation-run output; do not store model predictions in benchmark ground-truth records.",
+      "additionalProperties": false,
+      "required": [
+        "document_id",
+        "run_id",
+        "document_type_confidence",
+        "field_predictions",
+        "review_required"
+      ],
+      "properties": {
+        "document_id": {
+          "type": "string"
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "document_type_prediction": {
+          "type": "string",
+          "enum": [
+            "electricity_bill",
+            "diesel_fuel_invoice",
+            "lpg_receipt",
+            "purchased_material_invoice",
+            "freight_transport_bill",
+            "generic_invoice",
+            "generic_receipt",
+            "other_business_document",
+            "unknown"
+          ]
+        },
+        "document_type_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "field_predictions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "field_name",
+              "confidence"
+            ],
+            "properties": {
+              "field_name": {
+                "type": "string"
+              },
+              "predicted_value": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              },
+              "predicted_unit": {
+                "type": "string"
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "bbox": {
+                "$ref": "#/$defs/bbox"
+              }
+            }
+          }
+        },
+        "predicted_activity": {
+          "type": "string",
+          "enum": [
+            "purchased_electricity",
+            "diesel_fuel",
+            "lpg",
+            "purchased_materials",
+            "selected_transport"
+          ]
+        },
+        "predicted_scope": {
+          "type": "string",
+          "enum": [
+            "Scope 1",
+            "Scope 2",
+            "Scope 3"
+          ]
+        },
+            "predicted_scope_category": {
+          "type": "string",
+          "enum": [
+            "purchased electricity",
+            "stationary combustion",
+            "mobile combustion",
+            "Category 1 - Purchased goods and services",
+            "Category 4 - Upstream transportation and distribution",
+            "Category 9 - Downstream transportation and distribution"
+          ]
+        },
+        "factor_id": {
+          "type": "string"
+        },
+        "predicted_co2e": {
+          "type": "number",
+          "minimum": 0
+        },
+        "review_required": {
+          "type": "boolean"
+        },
+        "review_decision": {
+          "type": "string",
+          "enum": [
+            "accept",
+            "correct",
+            "reject",
+            "escalate"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["predicted_scope", "predicted_scope_category"], "properties": { "predicted_scope": { "const": "Scope 1" } } },
+          "then": { "properties": { "predicted_scope_category": { "enum": ["stationary combustion", "mobile combustion"] } } }
+        },
+        {
+          "if": { "required": ["predicted_scope", "predicted_scope_category"], "properties": { "predicted_scope": { "const": "Scope 2" } } },
+          "then": { "properties": { "predicted_scope_category": { "const": "purchased electricity" } } }
+        },
+        {
+          "if": { "required": ["predicted_scope", "predicted_scope_category"], "properties": { "predicted_scope": { "const": "Scope 3" } } },
+          "then": { "properties": { "predicted_scope_category": { "enum": ["Category 1 - Purchased goods and services", "Category 4 - Upstream transportation and distribution", "Category 9 - Downstream transportation and distribution"] } } }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,8 @@
+# Isolated OCR research environment for the controlled evaluation harness.
+# Keeps optional OCR/PDF-rendering dependencies out of the default standard-library app environment.
+rapidocr==3.9.2
+onnxruntime==1.30.0
+pypdfium2==5.13.0
+# Windows CPython 3.12 x64 wheel, bundled with Tesseract 5.5.2.
+# English tessdata_fast model is downloaded separately; source/checksum are in the evaluation record.
+tesserocr @ https://github.com/simonflueckiger/tesserocr-windows_build/releases/download/tesserocr-v2.10.0-tesseract-5.5.2/tesserocr-2.10.0-cp312-cp312-win_amd64.whl#sha256=e05d41a2b0e6f38f3a5195d05a73674d72152a775d1b8ebe481ca9306f94d27a

@@ -1,0 +1,223 @@
+{
+  "version": "0.2",
+  "updated": "2026-09-24",
+  "description": "Frozen GreenLedger v1 activity IDs. Quantity units are document units unless explicitly identified as canonical calculation units. Activity labels do not by themselves determine Scope 1 versus Scope 3 when organizational boundary or business-flow context is required.",
+  "activities": [
+    {
+      "id": "purchased_electricity",
+      "canonical_name": "Purchased electricity",
+      "document_types": [
+        "electricity_bill"
+      ],
+      "aliases": [
+        "electricity bill",
+        "grid electricity",
+        "electricity consumption",
+        "kWh consumed"
+      ],
+      "document_units": [
+        "kWh",
+        "MWh"
+      ],
+      "canonical_unit": "kWh",
+      "scope_rule_id": "purchased_electricity_scope2",
+      "category_status": "approved",
+      "conversion_requirements": [
+        "MWh to kWh only when the source clearly labels consumption in MWh; factor geography/year must match."
+      ],
+      "conversion_rules": [
+        {
+          "rule_id": "electricity_mwh_to_kwh",
+          "input_unit": "MWh",
+          "output_unit": "kWh",
+          "multiplier": 1000,
+          "basis": "Exact SI prefix scaling: 1 MWh = 1000 kWh."
+        }
+      ],
+      "notes": "Purchased electricity consumed in organizational operations maps to Scope 2. Keep location-based and market-based methods distinct. Current CEA V22.0 record is CO2-only and is not eligible for CO2e."
+    },
+    {
+      "id": "diesel_fuel",
+      "canonical_name": "Diesel fuel",
+      "document_types": [
+        "diesel_fuel_invoice"
+      ],
+      "aliases": [
+        "diesel",
+        "HSD",
+        "high speed diesel",
+        "high-speed diesel",
+        "diesel fuel"
+      ],
+      "document_units": [
+        "L",
+        "litre",
+        "litres",
+        "liter",
+        "liters",
+        "mL",
+        "kL"
+      ],
+      "canonical_unit": "L",
+      "activity_basis": "fuel_consumed",
+      "scope_rule_id": "diesel_scope_context_required",
+      "category_status": "requires_context",
+      "required_context": [
+        "fuel_use",
+        "operational_control_or_ownership",
+        "stationary_or_mobile_source"
+      ],
+      "conversion_requirements": [
+        "Use documented volume scaling only (mL/L/kL). Do not convert L to MJ or kg without an authoritative fuel-property source matched to factor basis."
+      ],
+      "conversion_rules": [
+        {
+          "rule_id": "diesel_ml_to_l",
+          "input_unit": "mL",
+          "output_unit": "L",
+          "multiplier": 0.001,
+          "basis": "Exact SI prefix scaling: 1000 mL = 1 L."
+        },
+        {
+          "rule_id": "diesel_kl_to_l",
+          "input_unit": "kL",
+          "output_unit": "L",
+          "multiplier": 1000,
+          "basis": "Exact SI prefix scaling: 1 kL = 1000 L."
+        }
+      ],
+      "notes": "Invoices may show purchases rather than combustion during the reporting period. Confirm that the fuel was consumed by a source within the selected organizational boundary before classification."
+    },
+    {
+      "id": "lpg",
+      "canonical_name": "Liquefied petroleum gas (LPG)",
+      "document_types": [
+        "lpg_receipt"
+      ],
+      "aliases": [
+        "LPG",
+        "cooking gas",
+        "commercial LPG",
+        "liquefied petroleum gas"
+      ],
+      "document_units": [
+        "kg",
+        "cylinder_count",
+        "cylinder_net_mass_kg"
+      ],
+      "canonical_unit": "kg",
+      "activity_basis": "fuel_consumed",
+      "scope_rule_id": "lpg_scope_context_required",
+      "category_status": "requires_context",
+      "required_context": [
+        "fuel_use",
+        "operational_control_or_ownership",
+        "cylinder_net_fill_mass_if_count_only"
+      ],
+      "conversion_requirements": [
+        "Cylinder count to kg is allowed only when a printed net fill mass or authoritative supplier specification is linked. Do not assume a cylinder size.",
+        "The retained IPCC Tier 1 candidate applies only to actual, owned/controlled commercial or institutional stationary combustion, but is currently pending independent revalidation and cannot be used for calculation. Other contexts need a matching approved factor."
+      ],
+      "notes": "The retained global IPCC Tier 1 CO2e candidate is pending independent revalidation under the final combustion context and GWP100 basis. It must not be used for calculation until approved. It is not India-specific or year-specific; confirm actual combustion and product quantity basis before any future retrieval."
+    },
+    {
+      "id": "purchased_materials",
+      "canonical_name": "Selected purchased materials",
+      "document_types": [
+        "purchased_material_invoice"
+      ],
+      "aliases": [
+        "selected raw material",
+        "selected packaging material",
+        "selected physical material"
+      ],
+      "document_units": [
+        "kg",
+        "g",
+        "tonne",
+        "t",
+        "piece_with_verified_mass",
+        "metre_with_verified_mass"
+      ],
+      "canonical_unit": "kg",
+      "scope_rule_id": "purchased_materials_category1",
+      "category_status": "approved_subset",
+      "required_context": [
+        "exact_material_or_product_class",
+        "physical_quantity"
+      ],
+      "conversion_requirements": [
+        "Use exact mass-unit scaling (g/kg/tonne) or a verified product-specific mass conversion. No price-to-mass heuristic."
+      ],
+      "conversion_rules": [
+        {
+          "rule_id": "materials_g_to_kg",
+          "input_unit": "g",
+          "output_unit": "kg",
+          "multiplier": 0.001,
+          "basis": "Exact metric mass scaling: 1000 g = 1 kg."
+        },
+        {
+          "rule_id": "materials_tonne_to_kg",
+          "input_unit": "tonne",
+          "output_unit": "kg",
+          "multiplier": 1000,
+          "basis": "Exact metric mass definition: 1 tonne = 1000 kg."
+        }
+      ],
+      "notes": "Only PPC cement (CPWD reference row for 30% fly ash content), steel rebars, and generic steel are supported. Identity must be explicitly confirmed; generic steel and rebar are separate products. Use physical mass only; no price, piece, box, or length conversion."
+    },
+    {
+      "id": "selected_transport",
+      "canonical_name": "Selected transport/freight",
+      "document_types": [
+        "freight_transport_bill"
+      ],
+      "aliases": [
+        "selected freight service",
+        "purchased freight transport"
+      ],
+      "document_units": [
+        "km",
+        "m",
+        "kg",
+        "tonne",
+        "t",
+        "tonne_km"
+      ],
+      "canonical_unit": "tonne_km",
+      "scope_rule_id": "selected_transport_category_context",
+      "category_status": "approved_subset",
+      "required_context": [
+        "transport_mode",
+        "business_flow",
+        "who_purchased_transport_service",
+        "road_mode",
+        "vehicle_class",
+        "shipment_mass",
+        "distance",
+        "business_flow"
+      ],
+      "conversion_requirements": [
+        "Calculate tonne-km only from verified mass and distance with documented unit scaling, or use a source-provided tonne-km value."
+      ],
+      "conversion_rules": [
+        {
+          "rule_id": "transport_kg_to_tonne",
+          "input_unit": "kg",
+          "output_unit": "tonne",
+          "multiplier": 0.001,
+          "basis": "Exact metric mass scaling: 1000 kg = 1 tonne."
+        },
+        {
+          "rule_id": "transport_m_to_km",
+          "input_unit": "m",
+          "output_unit": "km",
+          "multiplier": 0.001,
+          "basis": "Exact SI length scaling: 1000 m = 1 km."
+        }
+      ],
+      "notes": "Only third-party India road freight using one of the seven explicit SFC India/TERI vehicle GVW classes is supported. Require shipment mass, distance, road mode, and business-flow context (Scope 3 Category 4 or 9). Factors are WTW kgCO2e/tonne-km. Freight charges, unknown vehicle classes, and company-controlled vehicles do not use these factors."
+    }
+  ]
+}

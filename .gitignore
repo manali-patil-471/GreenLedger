@@ -1,0 +1,101 @@
+# ============================================================
+# GreenLedger .gitignore — research-safe first commit
+# ============================================================
+
+# ----- Python runtime -----
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+
+# ----- Virtual environments -----
+.venv*/
+venv*/
+env/
+
+# ----- Model weights & caches (never commit) -----
+*.gguf
+*.bin
+*.safetensors
+*.onnx
+*.pt
+*.pth
+*.h5
+*.pb
+*.tflite
+models/paddleocr_vl_16_cache/
+models/ai_field_extraction/
+
+# ----- HuggingFace / model caches -----
+hf_home/
+.cache/
+
+# ----- Large public datasets (download separately) -----
+data/public/
+
+# ----- Synthetic document data -----
+data/synthetic/
+
+# ----- Real SME documents (never commit) -----
+data/real_sme/
+
+# ----- Frozen 120-document benchmark: documents, annotations, frozen state -----
+# Documents are ~8 MB of PDFs/images; download/stage separately.
+# Annotations, manifest, integrity, and frozen state are evaluation-critical
+# and must not leak into the repository.
+data/benchmark/greenledger_unseen_structure_pilot_120_2026-11-15/documents/
+data/benchmark/greenledger_unseen_structure_pilot_120_2026-11-15/previews/
+data/benchmark/greenledger_unseen_structure_pilot_120_2026-11-15/annotations.jsonl
+data/benchmark/greenledger_unseen_structure_pilot_120_2026-11-15/manifest.json
+data/benchmark/greenledger_unseen_structure_pilot_120_2026-11-15/integrity_report.json
+data/benchmark/greenledger_unseen_structure_pilot_120_2026-11-15/FROZEN.json
+
+# ----- Evaluation outputs (generated, not source) -----
+data/benchmark/evaluations/
+
+# ----- Generated temporary / staging files -----
+tmp/
+*.tmp
+
+# ----- Metadata inventory (24 MB generated dump) -----
+metadata/REPO_INVENTORY.json
+
+# ----- Reports (generated evaluation output) -----
+reports/
+
+# ----- Logs -----
+*.log
+logs/
+
+# ----- OS / editor files -----
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# ----- Secrets / credentials -----
+.env
+.env.*
+*.pem
+*.key
+secrets/
+
+# ----- Jupyter -----
+.ipynb_checkpoints/
+*.ipynb
+
+# ----- Miscellaneous -----
+*.zip
+*.tar.gz
+*.7z

@@ -1,0 +1,137 @@
+{
+  "version": "0.2",
+  "updated": "2026-09-24",
+  "description": "Approved GreenLedger v1 mapping rules. Classification is deterministic only when required boundary context is present; otherwise return an ambiguous/unresolved status for human review. AI may extract context but cannot invent categories.",
+  "mappings": [
+    {
+      "activity_id": "purchased_electricity",
+      "document_field_examples": [
+        "total_kwh",
+        "billing_period_kwh",
+        "energy_consumption"
+      ],
+      "rule_id": "purchased_electricity_scope2",
+      "classification_status": "approved",
+      "scope": "Scope 2",
+      "scope_category": "purchased electricity",
+      "conditions": [
+        "Electricity is purchased or acquired and consumed in the organization's operation."
+      ],
+      "ambiguous_action": "HUMAN_REVIEW",
+      "notes": "The accounting method (location-based/market-based) is separate from the scope/category label. Current CEA source values are CO2-only and do not enable CO2e calculation."
+    },
+    {
+      "activity_id": "diesel_fuel",
+      "document_field_examples": [
+        "litres",
+        "fuel_quantity",
+        "diesel_amount"
+      ],
+      "rule_id": "diesel_scope_context_required",
+      "classification_status": "requires_context",
+      "scope_when_controlled_combustion": "Scope 1",
+      "scope_category_when_controlled_combustion": [
+        "stationary combustion",
+        "mobile combustion"
+      ],
+      "scope_when_not_controlled_or_not_combusted": "unresolved; determine applicable Scope 3 treatment from actual activity and organizational boundary",
+      "required_context": [
+        "whether quantity is consumed or merely purchased",
+        "source use",
+        "ownership/operational control",
+        "stationary versus mobile source"
+      ],
+      "ambiguous_action": "HUMAN_REVIEW",
+      "notes": "A diesel invoice alone does not determine combustion, source class, or organizational control. Do not assign Scope 1 or a Scope 3 category from the fuel label alone."
+    },
+    {
+      "activity_id": "lpg",
+      "document_field_examples": [
+        "kg",
+        "lpg_net_mass",
+        "cylinder_count"
+      ],
+      "rule_id": "lpg_scope_context_required",
+      "classification_status": "requires_context",
+      "scope_when_controlled_combustion": "Scope 1",
+      "scope_category_when_controlled_combustion": [
+        "stationary combustion"
+      ],
+      "scope_when_not_controlled_or_not_combusted": "unresolved; determine applicable Scope 3 treatment from actual activity and organizational boundary",
+      "required_context": [
+        "whether quantity is consumed or merely purchased",
+        "source use",
+        "ownership/operational control",
+        "verified net LPG mass",
+        "commercial/institutional stationary source classification when selecting the conditional global IPCC Tier 1 factor"
+      ],
+      "ambiguous_action": "HUMAN_REVIEW",
+      "notes": "Do not infer net gas mass from cylinder count alone or assign a scope from an LPG invoice alone. The retained global IPCC Tier 1 candidate is pending independent revalidation and is not currently calculable, even for commercial/institutional stationary combustion (IPCC 1.A.4.a) with verified net mass; other contexts require a matching approved factor."
+    },
+    {
+      "activity_id": "purchased_materials",
+      "document_field_examples": [
+        "line_items",
+        "material_description",
+        "quantity",
+        "unit",
+        "weight"
+      ],
+      "rule_id": "purchased_materials_category1",
+      "classification_status": "approved_subset",
+      "scope": "Scope 3",
+      "scope_category": "Category 1 - Purchased goods and services",
+      "conditions": [
+        "The item is within the approved GreenLedger material subset.",
+        "The factor represents upstream cradle-to-gate production, not separately counted transport."
+      ],
+      "ambiguous_action": "HUMAN_REVIEW",
+      "notes": "The approved GreenLedger v1 subset is only PPC cement, steel rebars, and generic steel. Identity is required and ambiguity requires human review. The selected CPWD references are generic/reference factors, not supplier-specific EPD lookups; the CPWD table's underlying source remarks remain in factor provenance. Monetary amounts are not physical activity data."
+    },
+    {
+      "activity_id": "selected_transport",
+      "document_field_examples": [
+        "distance_km",
+        "tonne_km",
+        "transport_mode",
+        "fuel_quantity"
+      ],
+      "rule_id": "selected_transport_category_context",
+      "classification_status": "approved_subset_requires_context",
+      "category_rules": [
+        {
+          "conditions": [
+            "transport provider is not owned/controlled",
+            "reporting company purchased the transportation/distribution service"
+          ],
+          "scope": "Scope 3",
+          "scope_category": "Category 4 - Upstream transportation and distribution"
+        },
+        {
+          "conditions": [
+            "third-party transportation of sold products after the point of sale",
+            "transportation service was not purchased by reporting company"
+          ],
+          "scope": "Scope 3",
+          "scope_category": "Category 9 - Downstream transportation and distribution"
+        },
+        {
+          "conditions": [
+            "vehicles/facilities are owned or controlled by reporting company"
+          ],
+          "scope": "Scope 1",
+          "scope_category": "mobile combustion; fuel data required"
+        }
+      ],
+      "required_context": [
+        "transport mode",
+        "inbound/outbound or sold-product flow",
+        "who purchased the transport service",
+        "provider ownership/control",
+        "verified mass and distance or tonne-km"
+      ],
+      "ambiguous_action": "HUMAN_REVIEW",
+      "notes": "Only India road freight is supported, using explicit SFC India/TERI vehicle class, shipment mass, and distance. Category 4/9 remains determined by the existing business-flow rules; company-controlled transport remains Scope 1 and cannot use these Scope 3 freight intensities. Do not calculate from charges or infer route, mass, or vehicle class."
+    }
+  ]
+}
