@@ -197,7 +197,7 @@ class Qwen3VLCandidateAdapterTests(unittest.TestCase):
         self.assertIn("--temp", observed["command"])
         self.assertIn("--seed", observed["command"])
 
-    def test_command_includes_single_turn_flag(self):
+    def test_command_includes_single_turn_and_4096_token_limit(self):
         with tempfile.TemporaryDirectory() as temp:
             model = Path(temp) / "model.gguf"
             mmproj = Path(temp) / "mmproj.gguf"
@@ -213,6 +213,8 @@ class Qwen3VLCandidateAdapterTests(unittest.TestCase):
             cmd = adapter._command([dummy_page])
             self.assertIn("--single-turn", cmd)
             self.assertEqual(cmd[1:3], ["cli", "--single-turn"])
+            self.assertIn("-n", cmd)
+            self.assertEqual(cmd[cmd.index("-n") + 1], "4096")
 
     def test_candidate_input_has_no_ground_truth_fields(self):
         self.assertEqual(

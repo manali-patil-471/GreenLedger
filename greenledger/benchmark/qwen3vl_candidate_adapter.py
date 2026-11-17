@@ -560,7 +560,7 @@ class Qwen3VLCandidateAdapter:
             "-ngl", str(self.gpu_layers),
             "--mmproj-offload",
             "--simple-io",
-            "-n", "2048",
+            "-n", "4096",
             "--temp", "0",
             "--seed", "1",
         ]
