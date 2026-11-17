@@ -551,6 +551,7 @@ class Qwen3VLCandidateAdapter:
         return [
             self.llama_binary,
             "cli",
+            "--single-turn",
             "--offline",
             "-m", str(self.model_path),
             "--mmproj", str(self.mmproj_path),

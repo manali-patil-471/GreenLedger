@@ -191,10 +191,28 @@ class Qwen3VLCandidateAdapterTests(unittest.TestCase):
         self.assertIn("document_domain must be one of electricity, diesel", observed["prompt"].casefold())
         self.assertNotIn(candidate.candidate_id, observed["prompt"])
         self.assertIn("-ngl", observed["command"])
+        self.assertIn("--single-turn", observed["command"])
         self.assertIn("--mmproj-offload", observed["command"])
         self.assertIn("--offline", observed["command"])
         self.assertIn("--temp", observed["command"])
         self.assertIn("--seed", observed["command"])
+
+    def test_command_includes_single_turn_flag(self):
+        with tempfile.TemporaryDirectory() as temp:
+            model = Path(temp) / "model.gguf"
+            mmproj = Path(temp) / "mmproj.gguf"
+            model.write_bytes(b"model")
+            mmproj.write_bytes(b"mmproj")
+            adapter = Qwen3VLCandidateAdapter(
+                llama_binary="llama",
+                model_path=model,
+                mmproj_path=mmproj,
+                runner=lambda *_args, **_kwargs: None,
+            )
+            dummy_page = PreparedPage(Path(temp) / "candidate-input-page-0001.png", 1)
+            cmd = adapter._command([dummy_page])
+            self.assertIn("--single-turn", cmd)
+            self.assertEqual(cmd[1:3], ["cli", "--single-turn"])
 
     def test_candidate_input_has_no_ground_truth_fields(self):
         self.assertEqual(
