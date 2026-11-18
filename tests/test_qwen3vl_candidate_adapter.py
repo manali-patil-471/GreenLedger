@@ -11,6 +11,7 @@ from unittest.mock import patch
 from greenledger.benchmark.candidate_interface import CandidateDocumentInput, generate_candidate_predictions
 from greenledger.benchmark.contract import validate_prediction
 from greenledger.benchmark.qwen3vl_candidate_adapter import (
+    ADAPTER_VERSION,
     FIELD_ORDER,
     PreparedPage,
     Qwen3VLCandidateAdapter,
@@ -188,7 +189,7 @@ class Qwen3VLCandidateAdapterTests(unittest.TestCase):
         command_text = " ".join(observed["command"])
         self.assertNotIn(candidate.candidate_id, command_text)
         self.assertNotIn("annotations", command_text.casefold())
-        self.assertIn("document_domain must be one of electricity, diesel", observed["prompt"].casefold())
+        self.assertIn("document_domain must be electricity, diesel", observed["prompt"].casefold())
         self.assertNotIn(candidate.candidate_id, observed["prompt"])
         self.assertIn("-ngl", observed["command"])
         self.assertIn("--single-turn", observed["command"])
@@ -322,13 +323,34 @@ class Qwen3VLCandidateAdapterTests(unittest.TestCase):
 
     def test_prompt_excludes_accounting_decisions_and_requires_visible_evidence(self):
         prompt = build_evidence_prompt(2).casefold()
-        self.assertIn("visibly present", prompt)
+        self.assertIn("visibly", prompt)
         self.assertIn("one-based", prompt)
-        self.assertIn("never return scope/category", prompt)
-        self.assertIn("never return scope/category, emission factors", prompt)
-        self.assertIn("never return", prompt)
-        self.assertIn("do not convert units", prompt)
-        self.assertIn("do not turn cylinder count into net_lpg_mass", prompt)
+        self.assertIn("do not assign scope/category", prompt)
+        self.assertIn("choose or invent emission factors", prompt)
+        self.assertIn("no assumption-based conversions", prompt)
+        self.assertIn("net_lpg_mass", prompt)
+        self.assertIn("do not output 19 kg", prompt)
+        self.assertIn("do not select steel_rebar or generic_steel", prompt)
+        self.assertIn("do not infer a class from the vehicle name or registration", prompt)
+
+    def test_prompt_requires_lossless_normalization_and_preserves_raw_evidence(self):
+        prompt = build_evidence_prompt(3)
+        self.assertIn('raw_value="1.25", normalized_value=1250', prompt)
+        self.assertIn('raw_value="245", raw_unit="L", normalized_value=245', prompt)
+        self.assertIn('raw_value="320000", raw_unit="mL", normalized_value=320', prompt)
+        self.assertIn('normalized_unit="kWh"', prompt)
+        self.assertIn('2500 kg freight mass → 2.5 tonne', prompt)
+        self.assertIn('1200 m → 1.2 km', prompt)
+        self.assertIn("raw_value/raw_unit exactly as printed", prompt)
+        self.assertIn("normalized_value is a JSON number", prompt)
+        self.assertIn("Never collapse a conflict to one candidate", prompt)
+        self.assertIn('"accounting_readiness":"READY|INCOMPLETE|AMBIGUOUS|UNDETERMINED"', prompt)
+
+    def test_prompt_version_is_bumped_for_normalization_experiment(self):
+        self.assertEqual(
+            ADAPTER_VERSION,
+            "qwen3-vl-4b-gguf-q4_k_m-candidate-only-v2-evidence-normalization",
+        )
 
     def test_smoke_selection_covers_domains_states_pdf_and_image_without_passing_labels(self):
         domains = ("electricity", "diesel", "lpg", "materials", "freight")

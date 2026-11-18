@@ -34,7 +34,7 @@ from .contract import (
 )
 
 
-ADAPTER_VERSION = "qwen3-vl-4b-gguf-q4_k_m-candidate-only-v1"
+ADAPTER_VERSION = "qwen3-vl-4b-gguf-q4_k_m-candidate-only-v2-evidence-normalization"
 MODEL_ID = "Qwen/Qwen3-VL-4B-Instruct-GGUF:Q4_K_M"
 MODEL_REVISION_NOTE = "official Q4_K_M GGUF; adapter does not download or resolve model files"
 SUPPORTED_DOMAINS = {"electricity", "diesel", "lpg", "materials", "freight"}
@@ -145,25 +145,50 @@ def prepare_candidate_pages(
 
 def build_evidence_prompt(page_count: int) -> str:
     """Return the fixed evidence-only instruction sent to every document."""
-    return f"""You are a document-evidence extractor. Inspect only the supplied page image(s), in order; there are {page_count} page(s). Return exactly one JSON object and no markdown or commentary.
+    return f"""You are a visual business-document evidence extractor. Inspect only the {page_count} supplied page image(s), in source order. Return exactly one JSON object in the schema below; no markdown or commentary. The page number in evidence is one-based.
 
-Use only text and facts visibly present in the supplied document. Do not infer, repair, guess, or invent values. Preserve exact evidence wording. Page numbers are one-based. Do not convert units, infer missing quantities, infer LPG net mass from cylinder count, infer a material grade from vague wording, or infer a freight vehicle class from a vehicle registration/reference.
+EVIDENCE RULES
+- Use only information visibly printed in these images. Do not use filenames, outside knowledge about this record, or hidden metadata.
+- For every candidate, keep raw and normalized evidence separate. raw_value is the exact value token as printed (for a measured quantity, the numeral only); raw_unit is the printed unit. The evidence.text must preserve the exact visible span that supports both. Do not paraphrase evidence.
+- normalized_value is a JSON number for a numeric quantity, not a quoted number, only when the source gives enough explicit information for a lossless normalization. normalized_unit is the canonical unit below. For text fields, use a canonical string only when the visible wording explicitly supports that mapping. Otherwise retain the visible raw value and set normalized_value to null or status to INSUFFICIENT/UNDETERMINED.
+- No assumption-based conversions are permitted. Exact scaling examples allowed: 245 L → 245 L; 1.25 kL → 1250 L; 320000 mL → 320 L; 1.25 MWh → 1250 kWh; 500 g → 0.5 kg; 1.25 tonne → 1250 kg; 2500 kg freight mass → 2.5 tonne; 1200 m → 1.2 km. These are exact unit-prefix/metric conversions only. Do not infer density, product mass, fuel properties, vehicle class, distance, quantity, or any conversion that needs an unstated assumption.
+- Keep raw_value/raw_unit exactly as printed even when normalized_value/normalized_unit are converted. For example, the evidence span for “1.25 kL” stays exactly “1.25 kL”.
+- Status meanings: PRESENT = one explicit usable candidate; MISSING = inspected but absent; INSUFFICIENT = some evidence exists but does not establish the requested value; AMBIGUOUS = two or more plausible conflicting candidates, all retained separately; UNDETERMINED = the document does not let you determine the field. Never collapse a conflict to one candidate.
+- A cylinder count is not LPG net mass. Vague “steel” is not a material grade. A vehicle registration/reference is not a GVW class. A purchase invoice alone does not prove fuel was consumed. Never fill missing evidence from typical values.
+- Evidence text and page are required for every PRESENT or AMBIGUOUS candidate. If no reliable source span exists, do not claim a supported scalar. Do not invent bounding boxes or confidence scores.
 
-Identify document type and document domain from visible evidence. document_domain must be one of electricity, diesel, lpg, materials, freight, or UNDETERMINED. For every field you report use evidence_status PRESENT, MISSING, INSUFFICIENT, AMBIGUOUS, or UNDETERMINED. PRESENT has one candidate; AMBIGUOUS preserves all plausible conflicting candidates and their evidence; MISSING means the document was inspected and the evidence is absent; use UNDETERMINED if you cannot tell.
+CANONICAL EVIDENCE NORMALIZATION
+- document_domain must be electricity, diesel, lpg, materials, freight, or UNDETERMINED, identified from the page itself.
+- Keep activity_description as the visible description. When an explicit alias directly identifies the activity, its normalized_value may be purchased_electricity, diesel_fuel, lpg, purchased_materials, or selected_transport; otherwise leave it unnormalized.
+- Electricity quantity/unit: kWh. Diesel quantity/unit: L. LPG accounting quantity is net_lpg_mass in kg, only when net mass is printed. Material quantity/unit: kg. Freight shipment_mass_unit: tonne; distance_unit: km. Return a separate unit field when visible/required.
+- material_identity may be ppc_cement for explicit PPC/Portland Pozzolana Cement, steel_rebar for explicit rebar/reinforcing steel, or generic_steel only when explicitly called generic steel. Do not substitute among them.
+- Normalize geography to INDIA only when the document explicitly establishes an Indian location (for example “Maharashtra, India”). Do not infer grid/factor applicability.
+- For explicit context evidence only: source_type is mobile, stationary, third_party, or UNDETERMINED; combustion_status and operational_control are yes, no, or UNDETERMINED; commercial_institutional is yes, no, or UNDETERMINED. “Company-operated vehicle” explicitly supports operational_control=yes, but a purchase alone does not establish control or combustion.
+- transport_mode is road, rail, air, sea, or UNDETERMINED. transport_scenario may be upstream_purchased, downstream_sold_product, company_controlled, or UNDETERMINED only when the document explicitly states the corresponding business flow. Normalize a vehicle class only when its printed GVW/class wording directly matches one of: ROAD_GVW_LT_3_5_T, ROAD_GVW_3_5_T, ROAD_GVW_5_12_T, ROAD_GVW_12_20_T, ROAD_GVW_20_30_T, ROAD_GVW_30_50_T, ROAD_TRACTOR_TRAILER_GVW_30_60_T. Do not infer a class from the vehicle name or registration.
 
-Extract only visible business evidence, including when present: supplier_name, document_date, billing_period, activity_description, quantity, unit, net_lpg_mass, material_identity, geography, electricity_use, vehicle_reference, source_type, combustion_status, operational_control, commercial_institutional, purchase_evidence, transport_mode, transport_scenario, shipment_mass, shipment_mass_unit, distance, distance_unit, and transport_vehicle_class. Do not turn cylinder count into net_lpg_mass. Do not silently choose between conflicting quantities or units.
+READINESS EVIDENCE RULE
+This label is only a benchmark evidence-completeness prediction, not an accounting decision. Use READY only if the document's own predicted domain is supported and every listed domain-critical field has exactly one explicit, grounded, unambiguous PRESENT value: electricity = activity_description, quantity, unit, electricity_use, geography, billing_period; diesel = activity_description, quantity, unit, geography, vehicle_reference, source_type, combustion_status, operational_control; LPG = activity_description, net_lpg_mass, unit, geography, combustion_status, operational_control, source_type, commercial_institutional; materials = activity_description, material_identity, quantity, unit, geography, purchase_evidence; freight = activity_description, geography, transport_mode, transport_scenario, shipment_mass, shipment_mass_unit, distance, distance_unit, transport_vehicle_class. If any critical field is explicitly conflicting, use AMBIGUOUS; otherwise if any is missing/insufficient, use INCOMPLETE. If domain itself cannot be determined, use UNDETERMINED. A result still requires human confirmation.
 
-Return this shape (omit no required top-level keys; use empty arrays when appropriate):
+NEVER make accounting decisions: do not assign Scope/category, choose or invent emission factors, decide factor applicability/accounting boundary, calculate CO2 or CO2e, or claim an accounting result. Do not add output fields for any of these.
+
+FEW-SHOT EVIDENCE EXAMPLES
+1) Visible: “Fuel supplied: 1.25 kL”. Emit quantity candidate raw_value="1.25", normalized_value=1250 (JSON number), raw_unit="kL", normalized_unit="L", evidence.text="Fuel supplied: 1.25 kL". The separate unit field uses normalized_value="L". For “245 L”, use raw_value="245", raw_unit="L", normalized_value=245 (JSON number), normalized_unit="L”. For “320000 mL”, use raw_value="320000", raw_unit="mL", normalized_value=320 (JSON number), normalized_unit="L”. For electricity explicitly shown as “1.25 MWh”, use normalized_value=1250 (JSON number), normalized_unit="kWh".
+2) Visible: “LPG refill — 2 cylinders”; no printed net kg mass. Set net_lpg_mass to INSUFFICIENT with no numeric candidate, add missing_evidence explaining that cylinder count is present but net mass is absent. Do not output 19 kg or any other assumed fill mass.
+3) Visible on separate spans/pages: “Energy used: 285 kWh” and “Billed energy: 285 MWh”. Set quantity AMBIGUOUS, retain both candidates with their own raw units, losslessly normalized values (285 kWh and 285000 kWh), exact evidence spans, and page numbers. Do not pick one.
+4) Visible: “Steel — 500 kg”, with no rebar/PPC/generic product wording. Keep the quantity if grounded, but set material_identity INSUFFICIENT and do not select steel_rebar or generic_steel.
+5) Visible: a vehicle registration/reference but no printed GVW class. Set transport_vehicle_class MISSING or INSUFFICIENT as appropriate, and do not infer a class from that reference.
+
+Return this JSON shape (include all top-level keys; use empty arrays where appropriate):
 {{
-  "document_type": {{"evidence_status":"...","raw_value":"...","normalized_value":"...","evidence":[{{"text":"exact visible text","page":1}}]}},
-  "document_domain": {{"evidence_status":"...","raw_value":"electricity|diesel|lpg|materials|freight|UNDETERMINED","normalized_value":"...","evidence":[{{"text":"exact visible text","page":1}}]}},
-  "fields": [{{"field_name":"quantity","evidence_status":"...","candidates":[{{"raw_value":"...","normalized_value":"...","raw_unit":"...","normalized_unit":"...","evidence":[{{"text":"exact visible text","page":1}}]}}],"reason":"..."}}],
+  "document_type": {{"evidence_status":"PRESENT|MISSING|INSUFFICIENT|AMBIGUOUS|UNDETERMINED","raw_value":"...","normalized_value":"...","evidence":[{{"text":"exact visible text","page":1}}]}},
+  "document_domain": {{"evidence_status":"...","raw_value":"...","normalized_value":"electricity|diesel|lpg|materials|freight|UNDETERMINED","evidence":[{{"text":"exact visible text","page":1}}]}},
+  "fields": [{{"field_name":"quantity","evidence_status":"...","candidates":[{{"raw_value":"...","normalized_value":245,"raw_unit":"L","normalized_unit":"L","evidence":[{{"text":"exact visible text","page":1}}]}}],"reason":"..."}}],
   "missing_evidence": [{{"field_name":"...","reason":"...","evidence":[]}}],
   "ambiguities": [{{"field_name":"...","reason":"...","candidates":[{{"raw_value":"...","normalized_value":"...","raw_unit":"...","normalized_unit":"...","evidence":[{{"text":"exact visible text","page":1}}]}}],"evidence":[]}}],
   "accounting_readiness":"READY|INCOMPLETE|AMBIGUOUS|UNDETERMINED"
 }}
 
-accounting_readiness is only a document-evidence completeness classification for this benchmark. It is not an accounting decision. Never return Scope/category, emission factors, CO2/CO2e values, calculations, or accounting boundaries. Do not add fields outside this JSON shape. Bounding boxes are not requested; do not invent coordinates. Confidence scores are not requested."""
+Do not omit any required top-level key. Do not add fields outside this shape. Bounding boxes and confidence are not requested; do not invent them."""
 
 
 def _plain_scalar(value: Any) -> str | int | float | None:
